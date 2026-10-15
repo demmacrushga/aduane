@@ -54,3 +54,31 @@ export const MEALS: Meal[] = [
   m({ id: "yam-garden-egg-vegan", slot: "dinner", name: "Yam with garden egg & bean stew", emoji: "🍆", blurb: "Plant-based, palm-oil-light", cost: 16, contains: [], nutrients: ["iron", "fibre", "protein"], goals: ["light", "balanced"] }),
   m({ id: "pork-light", slot: "dinner", name: "Pepper soup with pork", emoji: "🍲", blurb: "Warming, high-protein", cost: 36, contains: ["meat", "pork"], nutrients: ["protein", "iron"], goals: ["strength"] }),
 ];
+
+/**
+ * Search terms for meals that are commonly sold at chop bars, street stalls or restaurants.
+ * Meals without an entry (e.g. home-style combinations) don't show a takeout link.
+ */
+export const TAKEOUT: Record<string, string> = {
+  "hausa-koko": "hausa koko",
+  "waakye-veg": "waakye",
+  "jollof-chicken": "jollof rice chicken",
+  "kontomire-ampesi": "kontomire ampesi",
+  "beans-gari": "red red",
+  "banku-okro": "banku tilapia",
+  "kenkey-fish": "kenkey fish",
+  "light-soup": "light soup fufu",
+  kelewele: "kelewele",
+  "boiled-corn": "boiled corn",
+  "oto-veg": "oto yam",
+  "groundnut-soup": "groundnut soup omo tuo",
+  "fish-garden-egg": "garden egg stew",
+  abenkwan: "abenkwan palm nut soup",
+  "kontomire-palava": "palava sauce",
+  "kebab-salad": "beef kebab",
+  "pork-light": "pepper soup",
+  "veg-stir-rice": "fried rice",
+};
+
+export const takeoutUrl = (id: string): string | null =>
+  TAKEOUT[id] ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${TAKEOUT[id]} near me`)}` : null;

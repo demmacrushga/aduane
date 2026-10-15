@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { planDay, allowed, type Prefs } from "./engine.ts";
-import { MEALS } from "./meals.ts";
+import { MEALS, TAKEOUT, takeoutUrl } from "./meals.ts";
 
 const base: Prefs = { diet: "any", goal: "balanced", budget: 60, household: 1, focus: [] };
 
@@ -40,4 +40,14 @@ test("plan is stable for the same day and changes with shuffle", () => {
 
 test("meal ids are unique", () => {
   assert.equal(new Set(MEALS.map((x) => x.id)).size, MEALS.length);
+});
+
+test("takeout terms only reference real meals and build a maps url", () => {
+  const ids = new Set(MEALS.map((x) => x.id));
+  for (const id of Object.keys(TAKEOUT)) assert.ok(ids.has(id), id);
+  assert.equal(
+    takeoutUrl("waakye-veg"),
+    "https://www.google.com/maps/search/?api=1&query=waakye%20near%20me",
+  );
+  assert.equal(takeoutUrl("tom-brown"), null);
 });
