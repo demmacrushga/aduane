@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { planDay, SLOTS, type Diet, type Prefs } from "@/lib/engine";
-import type { Goal, Nutrient, Slot } from "@/lib/meals";
+import { takeoutUrl, type Goal, type Nutrient, type Slot } from "@/lib/meals";
 
 const DEFAULTS: Prefs = { diet: "any", goal: "balanced", budget: 80, household: 1, focus: [] };
 const SLOT_LABEL: Record<Slot, string> = { breakfast: "Breakfast", lunch: "Lunch", snack: "Snack", dinner: "Dinner" };
@@ -172,9 +172,16 @@ export default function Planner() {
                 ≈ GH₵ {meal.cost * prefs.household}
                 {prefs.household > 1 ? ` for ${prefs.household}` : ""}
               </p>
-              <button onClick={() => swap(meal.slot)} className="mt-2 text-sm font-medium text-brand underline">
-                Swap this meal
-              </button>
+              <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-sm font-medium text-brand">
+                <button onClick={() => swap(meal.slot)} className="underline">
+                  Swap this meal
+                </button>
+                {takeoutUrl(meal.id) && (
+                  <a href={takeoutUrl(meal.id)!} target="_blank" rel="noopener noreferrer" className="underline">
+                    Don’t want to cook? Find it near me
+                  </a>
+                )}
+              </div>
             </div>
             <input
               type="checkbox"
