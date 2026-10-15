@@ -74,6 +74,13 @@ export default function Planner() {
   const meals = planDay(prefs, dateKey, shuffles);
   const total = meals.reduce((s, x) => s + x.cost, 0) * prefs.household;
   const eaten = SLOTS.filter((s) => done[s]).length;
+  const shareText = [
+    `My Aduane meal plan for ${new Date().toLocaleDateString(undefined, { weekday: "long", day: "numeric", month: "long" })}:`,
+    ...meals.map((x) => `${SLOT_LABEL[x.slot]}: ${x.name} (≈ GH₵ ${x.cost * prefs.household})`),
+    `Total ≈ GH₵ ${total}`,
+    "",
+    `Get yours: ${window.location.origin}`,
+  ].join("\n");
 
   return (
     <main className="mx-auto max-w-xl px-4 pb-16 pt-6">
@@ -81,6 +88,10 @@ export default function Planner() {
         <h1 className="text-3xl font-bold text-brand">Aduane</h1>
         <p className="text-muted">
           {new Date().toLocaleDateString(undefined, { weekday: "long", day: "numeric", month: "long" })} — here is what to eat today.
+        </p>
+        <p className="mt-3 text-sm">
+          Tired of asking “what will I cook today?” Tell us your budget and goals, and get a Ghanaian meal plan
+          for the day, with prices in GH₵. Free, no sign-up.
         </p>
       </header>
 
@@ -175,6 +186,15 @@ export default function Planner() {
           </article>
         ))}
       </section>
+
+      <a
+        href={`https://wa.me/?text=${encodeURIComponent(shareText)}`}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="mt-4 block rounded-2xl bg-brand px-4 py-3 text-center font-semibold text-white"
+      >
+        Share today’s plan on WhatsApp
+      </a>
 
       <p className="mt-4 rounded-2xl bg-gold/30 p-4 text-sm">
         <strong>Today’s total: ≈ GH₵ {total}</strong> · {eaten}/{SLOTS.length} meals done. Prices are rough
