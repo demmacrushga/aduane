@@ -4,6 +4,9 @@ import { useEffect, useState } from "react";
 import { planDay, SLOTS, type Diet, type Prefs } from "@/lib/engine";
 import { takeoutUrl, type Goal, type Nutrient, type Slot } from "@/lib/meals";
 
+// Link to a feedback form (e.g. Google Form). Set NEXT_PUBLIC_FEEDBACK_URL; the link is hidden if unset.
+const FEEDBACK_URL = process.env.NEXT_PUBLIC_FEEDBACK_URL;
+
 const DEFAULTS: Prefs = { diet: "any", goal: "balanced", budget: 80, household: 1, focus: [] };
 const SLOT_LABEL: Record<Slot, string> = { breakfast: "Breakfast", lunch: "Lunch", snack: "Snack", dinner: "Dinner" };
 const FOCUS: { id: Nutrient; label: string }[] = [
@@ -95,7 +98,7 @@ export default function Planner() {
         </p>
       </header>
 
-      <section className="mb-4 grid grid-cols-2 gap-3 rounded-2xl border border-line bg-card p-4">
+      <section className="mb-4 grid grid-cols-1 gap-3 sm:grid-cols-2 rounded-2xl border border-line bg-card p-4">
         <label className="text-sm text-muted">
           Diet
           <select className={select} value={prefs.diet} onChange={(e) => update({ diet: e.target.value as Diet })}>
@@ -138,7 +141,7 @@ export default function Planner() {
             onChange={(e) => update({ household: Math.min(12, Math.max(1, Number(e.target.value) || 1)) })}
           />
         </label>
-        <div className="col-span-2">
+        <div className="sm:col-span-2">
           <p className="mb-1 text-sm text-muted">Nutrients to favour</p>
           <div className="flex flex-wrap gap-2">
             {FOCUS.map((f) => (
@@ -207,6 +210,17 @@ export default function Planner() {
         <strong>Today’s total: ≈ GH₵ {total}</strong> · {eaten}/{SLOTS.length} meals done. Prices are rough
         market estimates and will vary by area.
       </p>
+
+      {FEEDBACK_URL && (
+        <a
+          href={FEEDBACK_URL}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="mt-4 block rounded-2xl border border-line bg-card px-4 py-3 text-center text-sm font-medium"
+        >
+          Was today’s plan useful? Tell us in 30 seconds
+        </a>
+      )}
 
       <p className="mt-6 text-center text-xs text-muted">
         General food ideas, not medical advice. Recipes are not yet reviewed by a dietitian. If you are pregnant or
