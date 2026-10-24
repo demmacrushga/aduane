@@ -82,3 +82,11 @@ export const TAKEOUT: Record<string, string> = {
 
 export const takeoutUrl = (id: string): string | null =>
   TAKEOUT[id] ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${TAKEOUT[id]} near me`)}` : null;
+
+/**
+ * Meal ids that have a photo at public/meals/<id>.jpg (landscape, ~800x600, under 150 KB).
+ * Add an id here after dropping its photo into public/meals/; meals not listed show an emoji tile.
+ */
+export const PHOTOS: string[] = [];
+
+export const photoUrl = (id: string): string | null => (PHOTOS.includes(id) ? `/meals/${id}.jpg` : null);

@@ -1,23 +1,24 @@
 @import "tailwindcss";
 
 :root {
-  --background: #fff8ef;
-  --foreground: #2a2118;
-  --card: #ffffff;
-  --muted: #7a6a58;
-  --green: #0f7a3d;
-  --gold: #fcd116;
-  --line: #efe2d0;
+  --background: #fbf3e4;
+  --foreground: #2b1d12;
+  --card: #fffdf8;
+  --muted: #7b6652;
+  --green: #0b6b3a;
+  --gold: #f2b705;
+  --red: #c8102e;
+  --line: #ecdcc0;
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --background: #17130e;
-    --foreground: #f6eddf;
-    --card: #231d15;
-    --muted: #b5a68f;
-    --green: #38b36a;
-    --line: #3a3126;
+    --background: #17110b;
+    --foreground: #f6ead6;
+    --card: #231a11;
+    --muted: #bba88f;
+    --green: #3fb872;
+    --line: #3b2e20;
   }
 }
 
@@ -28,11 +29,36 @@
   --color-muted: var(--muted);
   --color-brand: var(--green);
   --color-gold: var(--gold);
+  --color-red: var(--red);
   --color-line: var(--line);
+  --font-display: var(--font-fraunces), Georgia, serif;
+  --font-sans: var(--font-dm-sans), system-ui, sans-serif;
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  font-family: var(--font-dm-sans), system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+}
+
+/* Kente-inspired woven stripe */
+.kente {
+  height: 14px;
+  background:
+    repeating-linear-gradient(
+      90deg,
+      var(--red) 0 22px,
+      var(--gold) 22px 34px,
+      var(--green) 34px 62px,
+      #1b1b1b 62px 68px,
+      var(--gold) 68px 80px,
+      var(--green) 80px 96px,
+      var(--red) 96px 108px,
+      #1b1b1b 108px 114px
+    );
+  box-shadow: inset 0 -4px 0 rgba(0, 0, 0, 0.18);
+}
+.kente-thin {
+  height: 6px;
+  background: repeating-linear-gradient(90deg, var(--red) 0 10px, var(--gold) 10px 16px, var(--green) 16px 30px, #1b1b1b 30px 33px);
 }
