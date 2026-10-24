@@ -2,13 +2,29 @@
 
 import { useEffect, useState } from "react";
 import { planDay, SLOTS, type Diet, type Prefs } from "@/lib/engine";
-import { takeoutUrl, type Goal, type Nutrient, type Slot } from "@/lib/meals";
+import { photoUrl, takeoutUrl, type Goal, type Meal, type Nutrient, type Slot } from "@/lib/meals";
+import NumberField from "./number-field";
 
 // Link to a feedback form (e.g. Google Form). Set NEXT_PUBLIC_FEEDBACK_URL; the link is hidden if unset.
 const FEEDBACK_URL = process.env.NEXT_PUBLIC_FEEDBACK_URL;
 
 const DEFAULTS: Prefs = { diet: "any", goal: "balanced", budget: 80, household: 1, focus: [] };
 const SLOT_LABEL: Record<Slot, string> = { breakfast: "Breakfast", lunch: "Lunch", snack: "Snack", dinner: "Dinner" };
+const SLOT_TIME: Record<Slot, string> = { breakfast: "Morning", lunch: "Midday", snack: "Anytime", dinner: "Evening" };
+/** Accent colour per slot: tile background and left edge. */
+const SLOT_STYLE: Record<Slot, { tile: string; edge: string }> = {
+  breakfast: { tile: "bg-gold/35", edge: "border-l-gold" },
+  lunch: { tile: "bg-brand/20", edge: "border-l-brand" },
+  snack: { tile: "bg-red/15", edge: "border-l-red" },
+  dinner: { tile: "bg-foreground/10", edge: "border-l-foreground/60" },
+};
+const DIET_LABEL: Record<Diet, string> = { any: "Anything", "no-pork": "No pork", vegetarian: "Vegetarian", vegan: "Vegan" };
+const GOAL_LABEL: Record<Goal, string> = {
+  balanced: "Feel good",
+  energy: "More energy",
+  light: "Lighter meals",
+  strength: "Build strength",
+};
 const FOCUS: { id: Nutrient; label: string }[] = [
   { id: "iron", label: "Iron" },
   { id: "protein", label: "Protein" },
@@ -31,13 +47,36 @@ function write(key: string, value: unknown) {
   } catch {}
 }
 
-const select =
-  "w-full rounded-xl border border-line bg-background px-3 py-2 text-base";
+/** Twi greeting for the time of day. */
+function greeting(hour: number) {
+  if (hour < 12) return "Maakye";
+  if (hour < 17) return "Maaha";
+  return "Maadwo";
+}
+
+const field = "h-11 w-full rounded-xl border border-line bg-background px-3 text-base text-foreground";
+
+function MealVisual({ meal }: { meal: Meal }) {
+  const photo = photoUrl(meal.id);
+  if (photo) {
+    // eslint-disable-next-line @next/next/no-img-element
+    return <img src={photo} alt={meal.name} loading="lazy" className="h-24 w-24 shrink-0 rounded-2xl object-cover" />;
+  }
+  return (
+    <div
+      aria-hidden
+      className={`grid h-24 w-24 shrink-0 place-items-center rounded-2xl text-5xl ${SLOT_STYLE[meal.slot].tile}`}
+    >
+      {meal.emoji}
+    </div>
+  );
+}
 
 export default function Planner() {
   const [ready, setReady] = useState(false);
   const [dateKey, setDateKey] = useState("");
   const [prefs, setPrefs] = useState<Prefs>(DEFAULTS);
+  const [prefsOpen, setPrefsOpen] = useState(true);
   const [shuffles, setShuffles] = useState<Partial<Record<Slot, number>>>({});
   const [done, setDone] = useState<Partial<Record<Slot, boolean>>>({});
 
@@ -47,6 +86,8 @@ export default function Planner() {
     const key = new Date().toLocaleDateString("en-CA");
     setDateKey(key);
     setPrefs(read("aduane:prefs", DEFAULTS));
+    // First-time visitors see the preferences open; returning visitors go straight to their meals.
+    setPrefsOpen(localStorage.getItem("aduane:prefs") === null);
     setShuffles(read(`aduane:shuffles:${key}`, {}));
     setDone(read(`aduane:done:${key}`, {}));
     setReady(true);
@@ -74,11 +115,14 @@ export default function Planner() {
   const toggleFocus = (n: Nutrient) =>
     update({ focus: prefs.focus.includes(n) ? prefs.focus.filter((x) => x !== n) : [...prefs.focus, n] });
 
+  const now = new Date();
+  const dateLabel = now.toLocaleDateString(undefined, { weekday: "long", day: "numeric", month: "long" });
   const meals = planDay(prefs, dateKey, shuffles);
   const total = meals.reduce((s, x) => s + x.cost, 0) * prefs.household;
   const eaten = SLOTS.filter((s) => done[s]).length;
+  const people = prefs.household === 1 ? "1 person" : `${prefs.household} people`;
   const shareText = [
-    `My Aduane meal plan for ${new Date().toLocaleDateString(undefined, { weekday: "long", day: "numeric", month: "long" })}:`,
+    `My Aduane meal plan for ${dateLabel}:`,
     ...meals.map((x) => `${SLOT_LABEL[x.slot]}: ${x.name} (≈ GH₵ ${x.cost * prefs.household})`),
     `Total ≈ GH₵ ${total}`,
     "",
@@ -86,146 +130,187 @@ export default function Planner() {
   ].join("\n");
 
   return (
-    <main className="mx-auto max-w-xl px-4 pb-16 pt-6">
-      <header className="mb-5">
-        <h1 className="text-3xl font-bold text-brand">Aduane</h1>
-        <p className="text-muted">
-          {new Date().toLocaleDateString(undefined, { weekday: "long", day: "numeric", month: "long" })} — here is what to eat today.
-        </p>
-        <p className="mt-3 text-sm">
-          Tired of asking “what will I cook today?” Tell us your budget and goals, and get a Ghanaian meal plan
-          for the day, with prices in GH₵. Free, no sign-up.
-        </p>
-      </header>
+    <>
+      <div className="kente" aria-hidden />
+      <main className="mx-auto max-w-xl px-4 pb-16 pt-6">
+        <header className="mb-6">
+          <p className="text-sm font-semibold uppercase tracking-widest text-red">{dateLabel}</p>
+          <h1 className="mt-1 font-display text-5xl font-extrabold leading-none text-brand">
+            {greeting(now.getHours())}!
+          </h1>
+          <p className="mt-2 font-display text-2xl font-semibold leading-snug">
+            Here’s what to eat today.
+          </p>
+          <p className="mt-3 text-sm text-muted">
+            <span className="font-semibold text-foreground">Aduane</span> means “food” in Twi. Tell us your budget
+            and we’ll plan the day with real Ghanaian meals and prices in GH₵. Free, no sign-up.
+          </p>
+        </header>
 
-      <section className="mb-4 grid grid-cols-1 gap-3 sm:grid-cols-2 rounded-2xl border border-line bg-card p-4">
-        <label className="text-sm text-muted">
-          Diet
-          <select className={select} value={prefs.diet} onChange={(e) => update({ diet: e.target.value as Diet })}>
-            <option value="any">Anything</option>
-            <option value="no-pork">No pork</option>
-            <option value="vegetarian">Vegetarian</option>
-            <option value="vegan">Vegan</option>
-          </select>
-        </label>
-        <label className="text-sm text-muted">
-          Goal
-          <select className={select} value={prefs.goal} onChange={(e) => update({ goal: e.target.value as Goal })}>
-            <option value="balanced">Feel good</option>
-            <option value="energy">More energy</option>
-            <option value="light">Lighter meals</option>
-            <option value="strength">Build strength</option>
-          </select>
-        </label>
-        <label className="text-sm text-muted">
-          Budget per person / day (GH₵)
-          <input
-            className={select}
-            type="number"
-            inputMode="numeric"
-            min={15}
-            max={300}
-            value={prefs.budget}
-            onChange={(e) => update({ budget: Math.max(15, Number(e.target.value) || 15) })}
-          />
-        </label>
-        <label className="text-sm text-muted">
-          People eating
-          <input
-            className={select}
-            type="number"
-            inputMode="numeric"
-            min={1}
-            max={12}
-            value={prefs.household}
-            onChange={(e) => update({ household: Math.min(12, Math.max(1, Number(e.target.value) || 1)) })}
-          />
-        </label>
-        <div className="sm:col-span-2">
-          <p className="mb-1 text-sm text-muted">Nutrients to favour</p>
-          <div className="flex flex-wrap gap-2">
-            {FOCUS.map((f) => (
-              <button
-                key={f.id}
-                onClick={() => toggleFocus(f.id)}
-                aria-pressed={prefs.focus.includes(f.id)}
-                className={`rounded-full border px-3 py-1 text-sm ${
-                  prefs.focus.includes(f.id) ? "border-brand bg-brand text-white" : "border-line"
-                }`}
-              >
-                {f.label}
-              </button>
-            ))}
-          </div>
-        </div>
-      </section>
+        <details
+          open={prefsOpen}
+          onToggle={(e) => setPrefsOpen((e.currentTarget as HTMLDetailsElement).open)}
+          className="mb-6 rounded-2xl border border-line bg-card"
+        >
+          <summary className="flex cursor-pointer list-none items-center justify-between gap-3 p-4">
+            <span>
+              <span className="block text-xs font-semibold uppercase tracking-widest text-muted">Your plan settings</span>
+              <span className="block font-semibold">
+                {DIET_LABEL[prefs.diet]} · {GOAL_LABEL[prefs.goal]} · GH₵{prefs.budget}/person · {people}
+              </span>
+            </span>
+            <span className="shrink-0 rounded-full border border-line px-3 py-1 text-sm font-semibold text-brand">
+              {prefsOpen ? "Done" : "Edit"}
+            </span>
+          </summary>
 
-      <section aria-label="Today's meals" className="space-y-3">
-        {meals.map((meal) => (
-          <article
-            key={meal.id + meal.slot}
-            className={`flex gap-3 rounded-2xl border border-line bg-card p-4 ${done[meal.slot] ? "opacity-55" : ""}`}
-          >
-            <div className="text-3xl" aria-hidden>{meal.emoji}</div>
-            <div className="flex-1">
-              <p className="text-xs font-bold uppercase tracking-wide text-brand">{SLOT_LABEL[meal.slot]}</p>
-              <h2 className={`text-lg font-semibold ${done[meal.slot] ? "line-through" : ""}`}>{meal.name}</h2>
-              <p className="text-sm text-muted">{meal.blurb}</p>
-              <p className="mt-1 text-sm">
-                ≈ GH₵ {meal.cost * prefs.household}
-                {prefs.household > 1 ? ` for ${prefs.household}` : ""}
-              </p>
-              <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-sm font-medium text-brand">
-                <button onClick={() => swap(meal.slot)} className="underline">
-                  Swap this meal
-                </button>
-                {takeoutUrl(meal.id) && (
-                  <a href={takeoutUrl(meal.id)!} target="_blank" rel="noopener noreferrer" className="underline">
-                    Don’t want to cook? Find it near me
-                  </a>
-                )}
+          <div className="grid grid-cols-1 gap-4 border-t border-line p-4 sm:grid-cols-2">
+            <label className="text-sm text-muted">
+              <span className="mb-1 block">Diet</span>
+              <select className={field} value={prefs.diet} onChange={(e) => update({ diet: e.target.value as Diet })}>
+                {(Object.keys(DIET_LABEL) as Diet[]).map((d) => (
+                  <option key={d} value={d}>
+                    {DIET_LABEL[d]}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label className="text-sm text-muted">
+              <span className="mb-1 block">Goal</span>
+              <select className={field} value={prefs.goal} onChange={(e) => update({ goal: e.target.value as Goal })}>
+                {(Object.keys(GOAL_LABEL) as Goal[]).map((g) => (
+                  <option key={g} value={g}>
+                    {GOAL_LABEL[g]}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <NumberField
+              label="Budget per person / day"
+              prefix="GH₵"
+              value={prefs.budget}
+              min={10}
+              max={500}
+              step={5}
+              onChange={(budget) => update({ budget })}
+            />
+            <NumberField
+              label="People eating"
+              value={prefs.household}
+              min={1}
+              max={20}
+              step={1}
+              onChange={(household) => update({ household })}
+            />
+            <div className="sm:col-span-2">
+              <p className="mb-2 text-sm text-muted">Nutrients to favour</p>
+              <div className="flex flex-wrap gap-2">
+                {FOCUS.map((f) => (
+                  <button
+                    key={f.id}
+                    onClick={() => toggleFocus(f.id)}
+                    aria-pressed={prefs.focus.includes(f.id)}
+                    className={`rounded-full border px-4 py-2 text-sm font-medium ${
+                      prefs.focus.includes(f.id) ? "border-brand bg-brand text-white" : "border-line bg-background"
+                    }`}
+                  >
+                    {f.label}
+                  </button>
+                ))}
               </div>
             </div>
-            <input
-              type="checkbox"
-              checked={!!done[meal.slot]}
-              onChange={() => toggle(meal.slot)}
-              aria-label={`Mark ${SLOT_LABEL[meal.slot]} as eaten`}
-              className="mt-1 h-6 w-6 accent-[var(--green)]"
-            />
-          </article>
-        ))}
-      </section>
+          </div>
+        </details>
 
-      <a
-        href={`https://wa.me/?text=${encodeURIComponent(shareText)}`}
-        target="_blank"
-        rel="noopener noreferrer"
-        className="mt-4 block rounded-2xl bg-brand px-4 py-3 text-center font-semibold text-white"
-      >
-        Share today’s plan on WhatsApp
-      </a>
+        <section aria-label="Today's meals" className="space-y-4">
+          {meals.map((meal) => (
+            <article
+              key={meal.id + meal.slot}
+              className={`flex gap-4 rounded-2xl border border-l-8 border-line bg-card p-4 ${SLOT_STYLE[meal.slot].edge} ${
+                done[meal.slot] ? "opacity-55" : ""
+              }`}
+            >
+              <MealVisual meal={meal} />
+              <div className="min-w-0 flex-1">
+                <p className="text-xs font-bold uppercase tracking-widest text-muted">
+                  {SLOT_LABEL[meal.slot]} · {SLOT_TIME[meal.slot]}
+                </p>
+                <h2
+                  className={`font-display text-xl font-semibold leading-tight ${done[meal.slot] ? "line-through" : ""}`}
+                >
+                  {meal.name}
+                </h2>
+                <p className="mt-1 text-sm text-muted">{meal.blurb}</p>
+                <p className="mt-2 font-semibold">
+                  ≈ GH₵ {meal.cost * prefs.household}
+                  {prefs.household > 1 && <span className="font-normal text-muted"> for {prefs.household}</span>}
+                </p>
+                <div className="mt-3 flex flex-wrap gap-2 text-sm font-semibold">
+                  <button onClick={() => swap(meal.slot)} className="rounded-full border border-line px-3 py-1.5 text-brand">
+                    ↻ Swap
+                  </button>
+                  {takeoutUrl(meal.id) && (
+                    <a
+                      href={takeoutUrl(meal.id)!}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="rounded-full border border-line px-3 py-1.5 text-brand"
+                    >
+                      📍 Buy nearby
+                    </a>
+                  )}
+                  <button
+                    onClick={() => toggle(meal.slot)}
+                    aria-pressed={!!done[meal.slot]}
+                    className={`rounded-full px-3 py-1.5 ${
+                      done[meal.slot] ? "bg-brand text-white" : "border border-line text-foreground"
+                    }`}
+                  >
+                    {done[meal.slot] ? "✓ Eaten" : "Mark eaten"}
+                  </button>
+                </div>
+              </div>
+            </article>
+          ))}
+        </section>
 
-      <p className="mt-4 rounded-2xl bg-gold/30 p-4 text-sm">
-        <strong>Today’s total: ≈ GH₵ {total}</strong> · {eaten}/{SLOTS.length} meals done. Prices are rough
-        market estimates and will vary by area.
-      </p>
+        <section className="mt-6 rounded-2xl bg-brand p-5 text-white">
+          <p className="text-sm uppercase tracking-widest text-white/75">Today’s total</p>
+          <p className="font-display text-4xl font-extrabold">≈ GH₵ {total}</p>
+          <div className="mt-3 h-2 overflow-hidden rounded-full bg-white/25" aria-hidden>
+            <div className="h-full rounded-full bg-gold transition-all" style={{ width: `${(eaten / SLOTS.length) * 100}%` }} />
+          </div>
+          <p className="mt-2 text-sm text-white/85">
+            {eaten} of {SLOTS.length} meals eaten · prices are rough market estimates
+          </p>
+        </section>
 
-      {FEEDBACK_URL && (
         <a
-          href={FEEDBACK_URL}
+          href={`https://wa.me/?text=${encodeURIComponent(shareText)}`}
           target="_blank"
           rel="noopener noreferrer"
-          className="mt-4 block rounded-2xl border border-line bg-card px-4 py-3 text-center text-sm font-medium"
+          className="mt-4 block rounded-2xl bg-gold px-4 py-4 text-center text-lg font-bold text-[#2b1d12]"
         >
-          Was today’s plan useful? Tell us in 30 seconds
+          Share today’s plan on WhatsApp
         </a>
-      )}
 
-      <p className="mt-6 text-center text-xs text-muted">
-        General food ideas, not medical advice. Recipes are not yet reviewed by a dietitian. If you are pregnant or
-        managing a health condition, speak to a doctor or dietitian.
-      </p>
-    </main>
+        {FEEDBACK_URL && (
+          <a
+            href={FEEDBACK_URL}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="mt-3 block rounded-2xl border border-line bg-card px-4 py-3 text-center text-sm font-semibold"
+          >
+            Was today’s plan useful? Tell us in 30 seconds
+          </a>
+        )}
+
+        <p className="mt-8 text-center text-xs text-muted">
+          General food ideas, not medical advice. Recipes are not yet reviewed by a dietitian. If you are pregnant or
+          managing a health condition, speak to a doctor or dietitian.
+        </p>
+      </main>
+      <div className="kente-thin" aria-hidden />
+    </>
   );
 }
